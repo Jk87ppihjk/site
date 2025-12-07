@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vender Site - Graviti Marketplace</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <a href="index.html" class="logo">GRAVITI</a>
+                <ul class="nav-links" id="nav-links"></ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="form-container" style="max-width: 800px;">
+            <h2 class="section-title">Publicar Novo Site</h2>
+            <form onsubmit="handleSell(event)">
+                <div class="form-group">
+                    <label>Título do Site</label>
+                    <input type="text" id="prod-title" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="prod-desc" rows="4" required
+                        style="width: 100%; border-radius: 10px; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: white;"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>URL de Prévia (Opcional)</label>
+                    <input type="url" id="prod-preview">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Preço (Apenas Backend)</label>
+                        <input type="number" id="price-back" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Preço (Front Padrão)</label>
+                        <input type="number" id="price-std" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Preço (Front Personalizado)</label>
+                        <input type="number" id="price-cust" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Arquivo ZIP do Código Fonte (.zip)</label>
+                    <input type="file" id="file-zip" accept=".zip" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Imagens (JPG/PNG - Até 5)</label>
+                    <input type="file" id="file-imgs" accept="image/*" multiple required>
+                </div>
+
+                <button type="submit" class="btn" style="width: 100%;">Publicar</button>
+            </form>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        if (!isLoggedIn()) window.location.href = 'auth.html';
+
+        async function handleSell(e) {
+            e.preventDefault();
+
+            const formData = new FormData();
+            formData.append('title', document.getElementById('prod-title').value);
+            formData.append('description', document.getElementById('prod-desc').value);
+            formData.append('preview_url', document.getElementById('prod-preview').value);
+            formData.append('price_backend', document.getElementById('price-back').value);
+            formData.append('price_standard', document.getElementById('price-std').value);
+            formData.append('price_custom', document.getElementById('price-cust').value);
+
+            formData.append('zip', document.getElementById('file-zip').files[0]);
+
+            const images = document.getElementById('file-imgs').files;
+            for (let i = 0; i < images.length; i++) {
+                formData.append('images', images[i]);
+            }
+
+            try {
+                await apiCall('/products', 'POST', formData, true);
+                alert('Produto publicado com sucesso!');
+                window.location.href = 'index.html';
+            } catch (err) {
+                console.error(err);
+                // If it's a permission error, warn user
+                if (err.message.includes('Require Admin')) {
+                    alert('Erro: Apenas administradores podem publicar sites por enquanto.');
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

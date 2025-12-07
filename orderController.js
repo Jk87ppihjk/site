@@ -89,6 +89,24 @@ exports.rentProduct = async (req, res) => {
     }
 };
 
+exports.getUserOrders = async (req, res) => {
+    try {
+        const orders = await Order.findByUserId(req.user.id);
+        res.json(orders);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+exports.getUserRentals = async (req, res) => {
+    try {
+        const rentals = await Rental.findByUserId(req.user.id);
+        res.json(rentals);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 exports.getAllRentals = async (req, res) => {
     try {
         const rentals = await Rental.findAllWithDetails();

@@ -13,6 +13,18 @@ class Order {
         const [rows] = await db.execute('SELECT * FROM orders WHERE id = ?', [id]);
         return rows[0];
     }
+
+    static async findByUserId(userId) {
+        const sql = `
+            SELECT o.*, p.title as product_title, p.zip_file_url 
+            FROM orders o 
+            JOIN products p ON o.product_id = p.id
+            WHERE o.user_id = ?
+            ORDER BY o.created_at DESC
+        `;
+        const [rows] = await db.execute(sql, [userId]);
+        return rows;
+    }
 }
 
 class Rental {
@@ -22,6 +34,18 @@ class Rental {
             [userId, productId, frontendType, userDbHost, userDbName, userDbUser, userDbPass, subscriptionId]
         );
         return result.insertId;
+    }
+
+    static async findByUserId(userId) {
+        const sql = `
+            SELECT r.*, p.title as product_title 
+            FROM rentals r 
+            JOIN products p ON r.product_id = p.id
+            WHERE r.user_id = ?
+            ORDER BY r.created_at DESC
+        `;
+        const [rows] = await db.execute(sql, [userId]);
+        return rows;
     }
 
     static async findAllWithDetails() {
