@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Site - Graviti</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <a href="index.html" class="logo">GRAVITI</a>
+                <ul class="nav-links" id="nav-links"></ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="loading" style="text-align: center; padding: 4rem;">Carregando...</div>
+
+        <div id="product-content" style="display: none; padding: 2rem 0;">
+            <h1 id="p-title" class="section-title" style="text-align: left;"></h1>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem;">
+                <!-- Left: Images -->
+                <div>
+                    <img id="p-main-img" src="" alt="Site Preview"
+                        style="width: 100%; border-radius: 15px; border: 1px solid var(--glass-border);">
+                    <div id="p-gallery" style="display: flex; gap: 10px; margin-top: 1rem; overflow-x: auto;"></div>
+                </div>
+
+                <!-- Right: Details & Actions -->
+                <div>
+                    <p id="p-desc" style="color: var(--text-secondary); margin-bottom: 2rem; line-height: 1.6;"></p>
+
+                    <div style="background: var(--glass-bg); padding: 2rem; border-radius: 15px;">
+                        <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">Opções de Compra (Pagamento
+                            Único)</h3>
+
+                        <div class="form-group">
+                            <label>Escolha o Pacote:</label>
+                            <select id="buy-type" onchange="updatePrice()">
+                                <option value="backend">Apenas Backend - R$ <span id="price-back"></span></option>
+                                <option value="standard">Backend + Front Padrão - R$ <span id="price-std"></span>
+                                </option>
+                                <option value="custom">Backend + Front Personalizado - R$ <span id="price-cust"></span>
+                                </option>
+                            </select>
+                        </div>
+
+                        <button onclick="openModal('buy')" class="btn" style="width: 100%;">Comprar Agora</button>
+                    </div>
+
+                    <div
+                        style="background: var(--glass-bg); padding: 2rem; border-radius: 15px; margin-top: 2rem; border: 1px solid var(--accent-color);">
+                        <h3 style="margin-bottom: 1.5rem; color: var(--accent-color);">Alugar este Site</h3>
+                        <p style="margin-bottom: 1rem; font-size: 0.9rem;">Pagamento mensal recorrente. Infraestrutura
+                            incluída.</p>
+
+                        <div class="form-group">
+                            <label>Tipo de Front:</label>
+                            <select id="rent-type">
+                                <option value="standard">Front Padrão</option>
+                                <option value="custom">Front Personalizado</option>
+                            </select>
+                        </div>
+
+                        <button onclick="openModal('rent')" class="btn"
+                            style="background: var(--accent-color); width: 100%;">Assinar Aluguel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Payment Modal -->
+    <div id="payment-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+        <div class="form-container" style="margin: 0; width: 500px;">
+            <h2 class="section-title" style="font-size: 1.8rem; margin-bottom: 1.5rem;">Pagamento Seguro</h2>
+            <form onsubmit="handlePayment(event)">
+                <div class="form-group">
+                    <label>Número do Cartão</label>
+                    <input type="text" placeholder="0000 0000 0000 0000" required>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Validade</label>
+                        <input type="text" placeholder="MM/AA" required>
+                    </div>
+                    <div class="form-group">
+                        <label>CVV</label>
+                        <input type="text" placeholder="123" required>
+                    </div>
+                </div>
+
+                <!-- Extra fields for Rental -->
+                <div id="rental-fields"
+                    style="display: none; border-top: 1px solid var(--glass-border); padding-top: 1rem; margin-top: 1rem;">
+                    <p style="margin-bottom: 1rem; color: var(--accent-color);">Configuração do Banco de Dados</p>
+                    <div class="form-group"><input type="text" id="db-host" placeholder="DB Host"></div>
+                    <div class="form-group"><input type="text" id="db-name" placeholder="DB Name"></div>
+                    <div class="form-group"><input type="text" id="db-user" placeholder="DB User"></div>
+                    <div class="form-group"><input type="password" id="db-pass" placeholder="DB Password"></div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="button" onclick="closeModal()" class="btn btn-secondary"
+                        style="flex: 1;">Cancelar</button>
+                    <button type="submit" class="btn" style="flex: 1;">Confirmar Pagamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('id');
+        let currentProduct = null;
+        let purchaseMode = null; // 'buy' or 'rent'
+
+        async function loadProduct() {
+            if (!productId) {
+                alert('Produto não especificado');
+                window.location.href = 'index.html';
+                return;
+            }
+            try {
+                currentProduct = await apiCall(`/products/${productId}`);
+
+                document.getElementById('p-title').innerText = currentProduct.title;
+                document.getElementById('p-desc').innerText = currentProduct.description || 'Sem descrição.';
+
+                // Prices
+                // Note: Updating the Select Options text logic would be complex in Vanilla JS HTML directly, 
+                // so I'm doing a quick hack: replacing spans inside options? No, options don't support spans well across browsers.
+                // I will update the select logic in Javascript
+                const select = document.getElementById('buy-type');
+                select.options[0].text = `Apenas Backend - R$ ${currentProduct.price_backend}`;
+                select.options[1].text = `Backend + Front Padrão - R$ ${currentProduct.price_standard}`;
+                select.options[2].text = `Backend + Front Personalizado - R$ ${currentProduct.price_custom}`;
+
+                // Image
+                const mainImg = currentProduct.images && currentProduct.images.length > 0 ? currentProduct.images[0] : '';
+                document.getElementById('p-main-img').src = mainImg;
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('product-content').style.display = 'block';
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loading').innerText = 'Erro ao carregar produto.';
+            }
+        }
+
+        function updatePrice() {
+            // Optional: Update dynamic display if needed
+        }
+
+        function openModal(mode) {
+            if (!isLoggedIn()) {
+                alert('Faça login para continuar');
+                window.location.href = 'auth.html';
+                return;
+            }
+            purchaseMode = mode;
+            const modal = document.getElementById('payment-modal');
+            const rentalFields = document.getElementById('rental-fields');
+
+            modal.style.display = 'flex';
+            if (mode === 'rent') {
+                rentalFields.style.display = 'block';
+                document.getElementById('db-host').required = true;
+                // others required too... set manually
+            } else {
+                rentalFields.style.display = 'none';
+                document.getElementById('db-host').required = false;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('payment-modal').style.display = 'none';
+        }
+
+        async function handlePayment(e) {
+            e.preventDefault();
+            const cardDetails = { number: 'simulated' }; // In real app, collect securely
+
+            try {
+                if (purchaseMode === 'buy') {
+                    const type = document.getElementById('buy-type').value;
+                    const res = await apiCall('/orders/buy', 'POST', {
+                        product_id: productId,
+                        type,
+                        card_details: cardDetails
+                    });
+                    alert(res.message);
+                    window.location.href = 'dashboard.html';
+                } else if (purchaseMode === 'rent') {
+                    const frontend_type = document.getElementById('rent-type').value;
+                    const db_host = document.getElementById('db-host').value;
+                    const db_name = document.getElementById('db-name').value;
+                    const db_user = document.getElementById('db-user').value;
+                    const db_pass = document.getElementById('db-pass').value;
+
+                    const res = await apiCall('/orders/rent', 'POST', {
+                        product_id: productId,
+                        frontend_type,
+                        db_host, db_name, db_user, db_pass,
+                        card_details: cardDetails
+                    });
+                    alert(res.message);
+                    window.location.href = 'dashboard.html';
+                }
+            } catch (err) {
+                // Assert handled
+            }
+        }
+
+        loadProduct();
+    </script>
+</body>
+
+</html>
