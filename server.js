@@ -25,7 +25,24 @@ app.use('/payments', paymentRoutes); // Simulation routes
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+// Auto-Init Database
+const fs = require('fs');
+const path = require('path');
+const db = require('./db');
+
+async function initDB() {
+    try {
+        const schemaPath = path.join(__dirname, 'schema.sql');
+        const schema = fs.readFileSync(schemaPath, 'utf8');
+        await db.query(schema);
+        console.log("Database Tables Initialized (Schema Executed)");
+    } catch (err) {
+        console.error("Error initializing database:", err);
+    }
+}
+
+app.listen(PORT, async () => {
+    await initDB();
     console.log(`Server running on port ${PORT}`);
 
     console.log("--- Environment Variables ---");
